@@ -1,7 +1,6 @@
 # Rainy Day Project
 # William Lord
-# Program that gets the next days forecast from the national weather service and sends me a text
-#   if there is a chance of rain.
+# Gets tomorrow's forecast from the national weather service and sends me a text if there is a chance of rain.
 
 import requests
 from bs4 import BeautifulSoup
@@ -9,15 +8,22 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# WEB SCRAPING STUFF
-# --------------------------------
 
-# paste the link for a particular city instead of this one
-# tempe
-page = requests.get('https://forecast.weather.gov/MapClick.php?lat=33.4255&lon=-111.9372')
+# ----------------------------------
+# Connecting to the forecast website
+# ----------------------------------
 
-# printing status hoping for a 200 (successful import)
-print(page.status_code)
+tempe = 'https://forecast.weather.gov/MapClick.php?lat=33.4255&lon=-111.9372'       # school
+seattle = 'https://forecast.weather.gov/MapClick.php?lat=47.6036&lon=-122.3294'     # for testing
+escondido = 'https://forecast.weather.gov/MapClick.php?lat=33.1232&lon=-117.0822'   # home
+
+page = requests.get(tempe)  # I will occasionally change the city
+print(page.status_code)     # (200 means successful import)
+
+# ---------------------
+# Parsing the web-page
+# ---------------------
+
 soup = BeautifulSoup(page.content, 'html.parser')
 
 # get the list of forecast items
@@ -26,55 +32,39 @@ forecast_items = seven_day.find_all(class_="tombstone-container")
 
 # move along until we find the correct item
 for element in forecast_items:
-
-    # get short description for the forecast
     period = element.find(class_="period-name").get_text()
     short_desc = element.find(class_="short-desc").get_text()
 
-    # break if the item is the one we want
+    # occasionally an extra element will appear, this ignores it
     if (short_desc != "Excessive Heat Warning") and (period != "Tonight"):
         break
 
-# get temperature and full forecast
 temperature = element.find(class_="temp").get_text()
-description = element.find('img', alt=True)
+description = str(element.find('img', alt=True))
+
+# the forecast we want is between quotes; we can split the string along the quotes, then extract the middle item
+forecast = description.split('\"')[1]
 
 # output to console so I can see forecast when the program runs if I want
 print(period)
 print(short_desc)
+print(forecast)
 print(temperature)
 
-# REFORMAT DESCRIPTION
-# ---------------------
-forecast = ""
-quotes = 0
-
-# the description we want is between quotes, this extracts it
-for char in str(description):
-
-    if quotes == 2:
-        break
-
-    if char == "\"":
-        quotes += 1
-
-    elif quotes == 1:
-        forecast += char
-
-# SMS CODE
-# -------------
+# -------------------------
+# Sending the text message
+# -------------------------
 
 # only send text if there is a chance of rain
 if ("rain" in forecast) or ("shower" in forecast):
 
-    print(forecast)  # print to console
-
-    # used soon to login to server
-    email = "email goes here"
-    password = "password goes here"
+    with open('sensitiveInfo', 'r') as file:
+        email = file.readline()
+        password = file.readline()
+        phone = file.readline()
 
     # this is for t-mobile, different carriers use something different
-    sms_gateway = 'phonenumberhere@tmomail.net'
+    sms_gateway = phone + '@tmomail.net'
 
     # server for sending text over email
     smtp = "smtp.gmail.com"
@@ -100,5 +90,5 @@ if ("rain" in forecast) or ("shower" in forecast):
     # send the text over email
     server.sendmail(email, sms_gateway, message.as_string())
 
-    # quit the server
+    # exit the server
     server.quit()
