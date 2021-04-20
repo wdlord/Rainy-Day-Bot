@@ -59,9 +59,9 @@ print(temperature)
 if ("rain" in forecast) or ("shower" in forecast):
 
     with open('sensitiveInfo', 'r') as file:
-        email = file.readline()
-        password = file.readline()
-        phone = file.readline()
+        email = file.readline().strip()
+        password = file.readline().strip()
+        phone = file.readline().strip()
 
     # this is for t-mobile, different carriers use something different
     sms_gateway = phone + '@tmomail.net'
